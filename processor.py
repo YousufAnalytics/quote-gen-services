@@ -70,79 +70,88 @@ def remove_ruled_lines(img: np.ndarray) -> np.ndarray:
 def add_letterhead(content: np.ndarray) -> np.ndarray:
     """
     Adds a professional letterhead/banner above the processed image.
+    Scales proportionally to content_width so it looks correct whether
+    the source image is a desktop-resolution scan or a mobile photo.
     """
-
+ 
     # -----------------------------------------------------
     # Convert grayscale content to BGR
     # -----------------------------------------------------
-
+ 
     if len(content.shape) == 2:
         content = cv2.cvtColor(
             content,
             cv2.COLOR_GRAY2BGR
         )
-
+ 
     content_height, content_width = content.shape[:2]
-
+ 
+    # -----------------------------------------------------
+    # Scale factor: everything below is tuned for a
+    # reference width of 1600px, then scaled to whatever
+    # width the actual image is (mobile photos are often
+    # much wider/narrower than a desktop scan).
+    # -----------------------------------------------------
+ 
+    REFERENCE_WIDTH = 1600
+    scale = content_width / REFERENCE_WIDTH
+ 
+    # Clamp so extremely tiny or huge images don't produce
+    # unreadable or absurdly large text
+    scale = max(0.4, min(scale, 3.0))
+ 
+    def s(value):
+        """Scale a pixel value."""
+        return int(round(value * scale))
+ 
     # -----------------------------------------------------
     # Letterhead dimensions
     # -----------------------------------------------------
-
-    header_height = 260
-
+ 
+    header_height = s(260)
+ 
     # Keep same width as original content
     canvas_width = content_width
-
+ 
     # Total output height
     total_height = header_height + content_height
-
+ 
     # Create pure white canvas
     canvas = np.full(
         (total_height, canvas_width, 3),
         255,
         dtype=np.uint8
     )
-
+ 
     # -----------------------------------------------------
     # HEADER
     # -----------------------------------------------------
-
-    # Company name
+ 
     company_name = "JAY DEEPTHI INTERIORS"
-
-    # Subtitle
     subtitle = "INTERIOR DESIGN & DECORATION"
-
-    # Address
     address = "12-45, Main Road, Vijayawada, Andhra Pradesh"
-
-    # Phone
     phone = "Phone: +91 98765 43210"
-
-    # -----------------------------------------------------
-    # Fonts
-    # -----------------------------------------------------
-
+ 
     font_bold = cv2.FONT_HERSHEY_SIMPLEX
     font_regular = cv2.FONT_HERSHEY_SIMPLEX
-
+ 
     # -----------------------------------------------------
     # Company name
     # -----------------------------------------------------
-
-    company_scale = 1.5
-    company_thickness = 3
-
+ 
+    company_scale = 1.5 * scale
+    company_thickness = max(1, s(3))
+ 
     (text_width, text_height), _ = cv2.getTextSize(
         company_name,
         font_bold,
         company_scale,
         company_thickness
     )
-
+ 
     company_x = (canvas_width - text_width) // 2
-    company_y = 65
-
+    company_y = s(65)
+ 
     cv2.putText(
         canvas,
         company_name,
@@ -153,24 +162,24 @@ def add_letterhead(content: np.ndarray) -> np.ndarray:
         company_thickness,
         cv2.LINE_AA
     )
-
+ 
     # -----------------------------------------------------
     # Subtitle
     # -----------------------------------------------------
-
-    subtitle_scale = 0.75
-    subtitle_thickness = 2
-
+ 
+    subtitle_scale = 0.75 * scale
+    subtitle_thickness = max(1, s(2))
+ 
     (text_width, text_height), _ = cv2.getTextSize(
         subtitle,
         font_regular,
         subtitle_scale,
         subtitle_thickness
     )
-
+ 
     subtitle_x = (canvas_width - text_width) // 2
-    subtitle_y = 105
-
+    subtitle_y = s(105)
+ 
     cv2.putText(
         canvas,
         subtitle,
@@ -181,24 +190,24 @@ def add_letterhead(content: np.ndarray) -> np.ndarray:
         subtitle_thickness,
         cv2.LINE_AA
     )
-
+ 
     # -----------------------------------------------------
     # Address
     # -----------------------------------------------------
-
-    address_scale = 0.55
-    address_thickness = 1
-
+ 
+    address_scale = 0.55 * scale
+    address_thickness = max(1, s(1))
+ 
     (text_width, text_height), _ = cv2.getTextSize(
         address,
         font_regular,
         address_scale,
         address_thickness
     )
-
+ 
     address_x = (canvas_width - text_width) // 2
-    address_y = 150
-
+    address_y = s(150)
+ 
     cv2.putText(
         canvas,
         address,
@@ -209,24 +218,24 @@ def add_letterhead(content: np.ndarray) -> np.ndarray:
         address_thickness,
         cv2.LINE_AA
     )
-
+ 
     # -----------------------------------------------------
     # Phone
     # -----------------------------------------------------
-
-    phone_scale = 0.55
-    phone_thickness = 1
-
+ 
+    phone_scale = 0.55 * scale
+    phone_thickness = max(1, s(1))
+ 
     (text_width, text_height), _ = cv2.getTextSize(
         phone,
         font_regular,
         phone_scale,
         phone_thickness
     )
-
+ 
     phone_x = (canvas_width - text_width) // 2
-    phone_y = 185
-
+    phone_y = s(185)
+ 
     cv2.putText(
         canvas,
         phone,
@@ -237,30 +246,30 @@ def add_letterhead(content: np.ndarray) -> np.ndarray:
         phone_thickness,
         cv2.LINE_AA
     )
-
+ 
     # -----------------------------------------------------
     # Horizontal separator
     # -----------------------------------------------------
-
-    line_y = 220
-
+ 
+    line_y = s(220)
+    margin = s(30)
+ 
     cv2.line(
         canvas,
-        (30, line_y),
-        (canvas_width - 30, line_y),
+        (margin, line_y),
+        (canvas_width - margin, line_y),
         (50, 50, 50),
-        2
+        max(1, s(2))
     )
-
+ 
     # -----------------------------------------------------
     # Put processed content underneath header
     # -----------------------------------------------------
-
+ 
     canvas[
         header_height:
         header_height + content_height,
         0:content_width
     ] = content
-
+ 
     return canvas
-
