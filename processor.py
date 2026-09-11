@@ -69,207 +69,281 @@ def remove_ruled_lines(img: np.ndarray) -> np.ndarray:
 
 def add_letterhead(content: np.ndarray) -> np.ndarray:
     """
-    Adds a professional letterhead/banner above the processed image.
-    Scales proportionally to content_width so it looks correct whether
-    the source image is a desktop-resolution scan or a mobile photo.
+    Adds a clearly visible professional letterhead above the processed image.
     """
- 
+
     # -----------------------------------------------------
     # Convert grayscale content to BGR
     # -----------------------------------------------------
- 
+
     if len(content.shape) == 2:
         content = cv2.cvtColor(
             content,
             cv2.COLOR_GRAY2BGR
         )
- 
+
     content_height, content_width = content.shape[:2]
- 
+
     # -----------------------------------------------------
-    # Scale factor: everything below is tuned for a
-    # reference width of 1600px, then scaled to whatever
-    # width the actual image is (mobile photos are often
-    # much wider/narrower than a desktop scan).
+    # Scaling
     # -----------------------------------------------------
- 
+
     REFERENCE_WIDTH = 1600
+
     scale = content_width / REFERENCE_WIDTH
- 
-    # Clamp so extremely tiny or huge images don't produce
-    # unreadable or absurdly large text
+
     scale = max(0.4, min(scale, 3.0))
- 
+
     def s(value):
-        """Scale a pixel value."""
         return int(round(value * scale))
- 
+
     # -----------------------------------------------------
     # Letterhead dimensions
     # -----------------------------------------------------
- 
-    header_height = s(260)
- 
-    # Keep same width as original content
+
+    # Increased from 260 to 330
+    header_height = s(380)
+
     canvas_width = content_width
- 
-    # Total output height
+
     total_height = header_height + content_height
- 
-    # Create pure white canvas
+
     canvas = np.full(
         (total_height, canvas_width, 3),
         255,
         dtype=np.uint8
     )
- 
+
     # -----------------------------------------------------
-    # HEADER
+    # HEADER CONTENT
     # -----------------------------------------------------
- 
+
     company_name = "JAY DEEPTHI INTERIORS"
     subtitle = "INTERIOR DESIGN & DECORATION"
-    address = "12-45, Main Road, Vijayawada, Andhra Pradesh"
-    phone = "Phone: +91 98765 43210"
- 
+    address = "Nallapadu, Near HP Gas Booking Office, Guntur - 522005"
+    phone = "Phone: +91 99518 23287"
+
     font_bold = cv2.FONT_HERSHEY_SIMPLEX
     font_regular = cv2.FONT_HERSHEY_SIMPLEX
- 
-    # -----------------------------------------------------
-    # Company name
-    # -----------------------------------------------------
- 
-    company_scale = 1.5 * scale
-    company_thickness = max(1, s(3))
- 
+
+    # =====================================================
+    # COMPANY NAME
+    # =====================================================
+
+    # Instead of using a fixed font size,
+    # calculate the font size based on page width.
+
+    target_width = int(content_width * 0.88)
+
+    company_scale = 1.0 * scale
+    company_thickness = max(2, s(4))
+
+    # Find the largest font that fits within 88% of page width
+    while True:
+
+        (text_width, text_height), _ = cv2.getTextSize(
+            company_name,
+            font_bold,
+            company_scale,
+            company_thickness
+        )
+
+        if text_width >= target_width:
+            company_scale -= 0.05 * scale
+            break
+
+        company_scale += 0.05 * scale
+
+        if company_scale > 5:
+            break
+
     (text_width, text_height), _ = cv2.getTextSize(
         company_name,
         font_bold,
         company_scale,
         company_thickness
     )
- 
+
     company_x = (canvas_width - text_width) // 2
-    company_y = s(65)
- 
+
+    # Much larger heading position
+    company_y = s(100)
+
     cv2.putText(
         canvas,
         company_name,
         (company_x, company_y),
         font_bold,
         company_scale,
-        (30, 30, 30),
+        (25, 25, 25),
         company_thickness,
         cv2.LINE_AA
     )
- 
-    # -----------------------------------------------------
-    # Subtitle
-    # -----------------------------------------------------
- 
-    subtitle_scale = 0.75 * scale
-    subtitle_thickness = max(1, s(2))
- 
-    (text_width, text_height), _ = cv2.getTextSize(
+
+    # =====================================================
+    # SUBTITLE
+    # =====================================================
+
+    subtitle_target_width = int(canvas_width * 0.78)
+
+    subtitle_scale = 1.05 * scale
+    subtitle_thickness = max(2, s(3))
+
+    while True:
+        (text_width, text_height), _ = cv2.getTextSize(
         subtitle,
         font_regular,
         subtitle_scale,
         subtitle_thickness
     )
- 
-    subtitle_x = (canvas_width - text_width) // 2
-    subtitle_y = s(105)
- 
-    cv2.putText(
-        canvas,
-        subtitle,
-        (subtitle_x, subtitle_y),
-        font_regular,
-        subtitle_scale,
-        (80, 80, 80),
-        subtitle_thickness,
-        cv2.LINE_AA
-    )
- 
-    # -----------------------------------------------------
-    # Address
-    # -----------------------------------------------------
- 
-    address_scale = 0.55 * scale
-    address_thickness = max(1, s(1))
- 
+        if text_width >= subtitle_target_width:
+            break
+
+        subtitle_scale += 0.05 * scale
+
+        if subtitle_scale > 5:
+            break
+
     (text_width, text_height), _ = cv2.getTextSize(
+    subtitle,
+    font_regular,
+    subtitle_scale,
+    subtitle_thickness
+)
+    subtitle_x = (canvas_width - text_width) // 2
+    subtitle_y = s(165)
+
+    cv2.putText(
+    canvas,
+    subtitle,
+    (subtitle_x, subtitle_y),
+    font_regular,
+    subtitle_scale,
+    (60, 60, 60),
+    subtitle_thickness,
+    cv2.LINE_AA
+)
+
+    # =====================================================
+    # ADDRESS
+    # =====================================================
+
+    address_target_width = int(canvas_width * 0.78)
+
+    address_scale = 1.0 * scale
+    address_thickness = max(3, s(3))
+
+    while True:
+
+        (text_width, text_height), _ = cv2.getTextSize(
         address,
         font_regular,
         address_scale,
         address_thickness
-    )
- 
-    address_x = (canvas_width - text_width) // 2
-    address_y = s(150)
- 
-    cv2.putText(
-        canvas,
-        address,
-        (address_x, address_y),
-        font_regular,
-        address_scale,
-        (80, 80, 80),
-        address_thickness,
-        cv2.LINE_AA
-    )
- 
-    # -----------------------------------------------------
-    # Phone
-    # -----------------------------------------------------
- 
-    phone_scale = 0.55 * scale
-    phone_thickness = max(1, s(1))
- 
+        )
+
+        if text_width >= address_target_width:
+            break
+
+        address_scale += 0.05 * scale
+
+        if address_scale > 5:
+         break
+
+        # Recalculate final size
     (text_width, text_height), _ = cv2.getTextSize(
+    address,
+    font_regular,
+    address_scale,
+    address_thickness
+    )
+
+    address_x = (canvas_width - text_width) // 2
+    address_y = s(225)
+
+    cv2.putText(
+    canvas,
+    address,
+    (address_x, address_y),
+    font_regular,
+    address_scale,
+    (60, 60, 60),
+    address_thickness,
+    cv2.LINE_AA
+    )
+
+    # =====================================================
+    # PHONE
+    # =====================================================
+
+    phone_target_width = int(canvas_width * 0.45)
+
+    phone_scale = 1.0 * scale
+    phone_thickness = max(3, s(3))
+
+    while True:
+
+        (text_width, text_height), _ = cv2.getTextSize(
         phone,
         font_regular,
         phone_scale,
         phone_thickness
+        )
+
+        if text_width >= phone_target_width:
+            break
+
+        phone_scale += 0.05 * scale
+
+        if phone_scale > 5:
+            break
+
+    # Recalculate final size
+    (text_width, text_height), _ = cv2.getTextSize(
+    phone,
+    font_regular,
+    phone_scale,
+    phone_thickness
     )
- 
+
     phone_x = (canvas_width - text_width) // 2
-    phone_y = s(185)
- 
+    phone_y = s(285)
+
     cv2.putText(
-        canvas,
-        phone,
-        (phone_x, phone_y),
-        font_regular,
-        phone_scale,
-        (80, 80, 80),
-        phone_thickness,
-        cv2.LINE_AA
+    canvas,
+    phone,
+    (phone_x, phone_y),
+    font_regular,
+    phone_scale,
+    (60, 60, 60),
+    phone_thickness,
+    cv2.LINE_AA
     )
- 
-    # -----------------------------------------------------
-    # Horizontal separator
-    # -----------------------------------------------------
- 
-    line_y = s(220)
+
+    # =====================================================
+    # HORIZONTAL SEPARATOR
+    # =====================================================
+
+    line_y = s(325)
+
     margin = s(30)
- 
+
     cv2.line(
         canvas,
         (margin, line_y),
         (canvas_width - margin, line_y),
-        (50, 50, 50),
-        max(1, s(2))
+        (40, 40, 40),
+        max(2, s(3))
     )
- 
-    # -----------------------------------------------------
-    # Put processed content underneath header
-    # -----------------------------------------------------
- 
+
+    # =====================================================
+    # PUT PROCESSED CONTENT UNDER HEADER
+    # =====================================================
+
     canvas[
         header_height:
         header_height + content_height,
         0:content_width
     ] = content
- 
+
     return canvas
