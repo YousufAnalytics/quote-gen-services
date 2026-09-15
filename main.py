@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from processor import remove_ruled_lines, add_letterhead
+from services.usage_service import track_usage
 
 
 app = FastAPI(
@@ -102,6 +103,10 @@ async def process_image(
             status_code=500,
             detail="Could not encode processed image"
         )
+
+    # log the request
+
+    track_usage("/process-image")
 
     # -----------------------------------------------------
     # 5. Return image directly
